@@ -1,4 +1,4 @@
-.PHONY: help setup dev db-up db-down db-logs db-reset be-run be-build be-test be-tidy fe-install fe-dev fe-build fe-typecheck clean
+.PHONY: help setup dev db-up db-down db-logs db-reset be-run be-build be-test be-tidy fe-install fe-dev fe-build fe-typecheck docker-build docker-up docker-down docker-logs clean
 
 # Default target
 .DEFAULT_GOAL := help
@@ -25,7 +25,7 @@ setup: ## Initial project setup (create .env, install dependencies, start db)
 	@printf "${COLOR_INFO}==> Installing frontend dependencies...${COLOR_RESET}\n"
 	@cd frontend && npm install
 	@printf "${COLOR_INFO}==> Starting database container...${COLOR_RESET}\n"
-	@docker compose up -d
+	@docker compose up -d postgres
 	@printf "${COLOR_SUCCESS}✓ Setup complete! Run 'make dev' to start all services.${COLOR_RESET}\n"
 
 dev: db-up ## Run both Backend and Frontend concurrently
@@ -38,11 +38,11 @@ dev: db-up ## Run both Backend and Frontend concurrently
 ##@ 🗄️ Database
 db-up: ## Start PostgreSQL database container
 	@printf "${COLOR_INFO}==> Starting PostgreSQL container...${COLOR_RESET}\n"
-	@docker compose up -d
+	@docker compose up -d postgres
 
 db-down: ## Stop PostgreSQL database container
 	@printf "${COLOR_INFO}==> Stopping PostgreSQL container...${COLOR_RESET}\n"
-	@docker compose down
+	@docker compose stop postgres
 
 db-logs: ## View PostgreSQL logs
 	@docker compose logs -f postgres
@@ -50,7 +50,7 @@ db-logs: ## View PostgreSQL logs
 db-reset: ## Reset PostgreSQL database and volumes
 	@printf "${COLOR_WARNING}==> Resetting database and volumes...${COLOR_RESET}\n"
 	@docker compose down -v
-	@docker compose up -d
+	@docker compose up -d postgres
 
 ##@ ⚙️ Backend (Go)
 be-run: db-up ## Run Go backend server (http://localhost:8080)
@@ -87,6 +87,22 @@ fe-build: ## Build frontend for production
 fe-typecheck: ## Run frontend TypeScript type checking
 	@printf "${COLOR_INFO}==> Checking Frontend TypeScript types...${COLOR_RESET}\n"
 	@cd frontend && npx vue-tsc -b
+
+##@ 🐳 Docker
+docker-build: ## Build unified Docker image (Backend + Frontend)
+	@printf "${COLOR_INFO}==> Building Docker container...${COLOR_RESET}\n"
+	@docker compose build
+
+docker-up: ## Start all services in Docker (PostgreSQL & App on port 8080)
+	@printf "${COLOR_INFO}==> Starting services with Docker Compose...${COLOR_RESET}\n"
+	@docker compose up -d
+
+docker-down: ## Stop all Docker containers
+	@printf "${COLOR_INFO}==> Stopping all Docker containers...${COLOR_RESET}\n"
+	@docker compose down
+
+docker-logs: ## View logs of all Docker services
+	@docker compose logs -f
 
 ##@ 🧹 Maintenance
 clean: ## Clean build artifacts and binaries

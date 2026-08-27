@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
+	"strings"
 
 	"backend/internal/config"
 	"backend/internal/database"
@@ -104,15 +106,52 @@ func main() {
 
 	// Public Redirection Route (e.g. /r/:code or /:code)
 	r.GET("/r/:code", redirectHandler.HandleRedirect)
+
+	// Reserved paths for frontend and system routes that shouldn't be treated as shortcodes
+	reservedPaths := map[string]bool{
+		"":                   true,
+		"api":                true,
+		"health":             true,
+		"assets":             true,
+		"favicon.ico":        true,
+		"login":              true,
+		"register":           true,
+		"dashboard":          true,
+		"links":              true,
+		"analytics":          true,
+		"p":                  true,
+		"link-not-found":     true,
+		"link-inactive":      true,
+		"link-expired":       true,
+		"link-limit-reached": true,
+		"link-error":         true,
+	}
+
 	r.GET("/:code", func(c *gin.Context) {
 		code := c.Param("code")
-		// Prevent conflicts with api or health paths
-		if code == "api" || code == "health" || code == "favicon.ico" {
+		if reservedPaths[code] {
 			c.Next()
 			return
 		}
 		redirectHandler.HandleRedirect(c)
 	})
+
+	// 7. Serve Frontend SPA if dist directory exists
+	distPath := "./dist"
+	if _, err := os.Stat(distPath); err == nil {
+		r.Static("/assets", distPath+"/assets")
+		r.StaticFile("/favicon.ico", distPath+"/favicon.ico")
+
+		// SPA Fallback for non-API routes
+		r.NoRoute(func(c *gin.Context) {
+			path := c.Request.URL.Path
+			if strings.HasPrefix(path, "/api") {
+				c.JSON(http.StatusNotFound, gin.H{"error": "API route not found"})
+				return
+			}
+			c.File(distPath + "/index.html")
+		})
+	}
 
 	log.Printf("Server listening on port %s...", cfg.Port)
 	if err := r.Run(":" + cfg.Port); err != nil {

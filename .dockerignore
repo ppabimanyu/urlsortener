@@ -1,0 +1,21 @@
+.git
+.gitignore
+.vscode
+.DS_Store
+
+# Frontend artifacts & dependencies
+frontend/node_modules
+frontend/dist
+frontend/dist-ssr
+frontend/.wrangler
+
+# Backend artifacts & binaries
+backend/bin
+backend/server
+*.log
+
+# Local environment files
+.env
+*.env
+backend/.env
+frontend/.env

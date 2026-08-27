@@ -9,6 +9,7 @@ COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 
 COPY frontend/ ./
+RUN touch .env && echo "VITE_API_URL=$VITE_API_URL" >> .env && echo "VITE_BACKEND_URL=$VITE_BACKEND_URL" >> .env
 RUN npm run build
 
 # ==========================================
